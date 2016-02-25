@@ -1,0 +1,135 @@
+---
+output: html_document
+---
+title: "Storm_Assignment"
+author: "ISSA FALL"
+date:  november,11 2015
+output: html_document:
+         keep_md:true
+         
+##                         WEATHER AND ITS RELATED CONSEQUENCES
+
+#INTRODUCTION
+```
+Across the United States,severe weather events are the headline every year.
+Exploring the NOAA Storm Database from 1950 to november 2011,allow me to discover the most harmfull
+weather events and their related economic consequences.
+```
+# DATA PROCESSING
+```{r loading ,echo=TRUE}
+dir("C:/Users/ndeye amy fall/Desktop/RStudio/repdata_data_StormData.csv.bz2")
+```
+##loading
+```{r Processing,echo=TRUE}
+con<-file("repdata_data_StormData.csv.bz2","rt")
+storm<-read.csv(con)
+str(storm)
+summary(storm)
+evtype<-storm$EVTYPE
+head(evtype)
+```
+##Subset of variables that are relevant to health or economy and explore some of them
+```{r subset,echo=TRUE}
+library(dplyr)
+library(plyr)
+library(ggplot2)
+storm2<-storm[, c(7,8,23,24,25,26,27,28)]
+##set.seed(900000)
+##trainIndicator=rbinom(902297,size = 1,prob = 0.5)
+##table(trainIndicator)
+##trainStorm=storm[trainIndicator == 1,]
+##testStorm=storm[trainIndicator == 0,]
+##plot(log10(trainStorm[,c(23,24,25,27)]+1))
+##hCluster = hclust(dist(t(log10(trainStorm[,c(23,24,25,27)]+1))))
+```
+##RESULTS
+```{r results,echo=TRUE}
+```
+##20 most harmfull events with respect to population health
+```{r harmfull events,echo=TRUE}
+fatalities<-aggregate(FATALITIES ~ EVTYPE, storm, FUN = sum)
+fatalities<-head(fatalities[order(fatalities$FATALITIES,na.last = TRUE,decreasing = TRUE),], 20)
+fatalities
+injuries<-aggregate(INJURIES ~ EVTYPE, storm, FUN = sum)
+injuries<-head(injuries[order(injuries$INJURIES,na.last = TRUE,decreasing = TRUE),], 20)
+injuries
+```
+##Total number of fatalities and injuries from 1950 to november 2011
+```{r fatalities and injuries}
+fatalities1<-summarize(group_by(storm,EVTYPE), FATALITIES =sum(FATALITIES,na.rm = TRUE))
+fatalities1
+injures1<-summarize(group_by(storm,EVTYPE), INJURIES =sum(INJURIES,na.rm = TRUE))
+injures1
+```
+##20 events that have the greatest economic consequences
+```{r economic consequences,echo=TRUE}
+propdmg<-aggregate(PROPDMG ~ EVTYPE, storm, FUN = sum)
+head(propdmg[order(propdmg$PROPDMG,na.last = TRUE,decreasing = TRUE), ],20)
+cropdmg<-aggregate(CROPDMG ~ EVTYPE, storm, FUN = sum)
+head(cropdmg[order(cropdmg$CROPDMG,na.last = TRUE,decreasing = TRUE), ], 20)
+```
+##Total number of properties and quantities of crops domaged from 1950 to november 2011
+```{r total expenses,echo=TRUE}
+propdmg1<-summarize(group_by(storm,EVTYPE), PROPDMG =sum(PROPDMG,na.rm = TRUE))
+propdmg1
+cropdmg1<-summarize(group_by(storm,EVTYPE), CROPDMG =sum(CROPDMG,na.rm = TRUE))
+cropdmg1
+```
+##Tables
+```{r tables,echo=TRUE}
+table(storm$PROPDMGEXP)
+table(storm$CROPDMGEXP)
+```
+##Clean up EVTYPE variable and convert all to upper case
+```{r clean up,echo=TRUE}
+##storm2$EVTYPE<-gsub("\\S+"," ",storm2$EVTYPE)
+##storm2$EVTYPE<-gsub("^\\S+|\\S+$"," ",storm2$EVTYPE)
+##storm2$EVTYPE<-toupper(storm2$EVTYPE)
+##storm2$EVTYPE<-as.factor(storm2$EVTYPE)
+```
+##Using the above information for further clean up of EVTYPE
+```{r further clean up,echo=TRUE}
+storm$EVTYPE<-as.factor(storm$EVTYPE)
+storm$PROPDMG[storm$PROPDMGEXP == "H"]<-storm$PROPDMG[storm$PROPDMGEXP == "H"]*100
+storm$PROPDMG[storm$PROPDMGEXP == "K"]<-storm$PROPDMG[storm$PROPDMGEXP == "K"]*1000
+storm$PROPDMG[storm$PROPDMGEXP == "M"]<-storm$PROPDMG[storm$PROPDMGEXP == "M"]*1000000
+storm$PROPDMG[storm$PROPDMGEXP == "B"]<-storm$PROPDMG[storm$PROPDMGEXP == "B"]*1000000000
+
+storm$CROPDMG[storm$CROPDMGEXP == "H"]<-storm$CROPDMG[storm$CROPDMGEXP == "H"]*100
+storm$CROPDMG[storm$CROPDMGEXP == "K"]<-storm$CROPDMG[storm$CROPDMGEXP == "K"]*1000
+storm$CROPDMG[storm$CROPDMGEXP == "M"]<-storm$CROPDMG[storm$CROPDMGEXP == "M"]*1000000
+storm$CROPDMG[storm$CROPDMGEXP == "B"]<-storm$CROPDMG[storm$CROPDMGEXP == "B"]*1000000000
+```
+##Economic impacts on property and crop domages expenses(H=100,K=1000,M=10^6,B=10^9)
+```{r economic impacts,echo=TRUE}
+
+ds<-storm[, c("EVTYPE","FATALITIES","INJURIES","PROPDMG","CROPDMG","PROPDMGEXP","CROPDMGEXP")]
+ds2<-!is.na(ds$PROPDMG)
+ds<-ds[ds2, ]
+head(ds)
+dmgByevtype<-aggregate(PROPDMG~EVTYPE,data = ds,sum)
+topdmgByevtype<-order(dmgByevtype$PROPDMG,decreasing = TRUE)[1:20]
+format(dmgByevtype[topdmgByevtype,c(1,2)],big.mark = ",",scientific = FALSE)
+barplot(dmgByevtype[topdmgByevtype, 2],xlab = "Event type",ylab = "Total properties domaged by type",cex.lab=1.3,names.arg = dmgByevtype$EVTYPE[topdmgByevtype])
+```
+##Amount of dollar domages
+```{r dollar domages,echo=TRUE}
+##propdmgexp<-aggregate(PROPDMGEXP~EVTYPE,ds,FUN = sum)
+##head(propdmgexp[order(propdmgexp$PROPDMGEXP,na.last = TRUE,decreasing = TRUE),], 20)
+##cropdmgexp<-aggregate(CROPDMGEXP~EVTYPE,ds,FUN = sum)
+##head(cropdmgexp[order(cropdmgexp$CROPDMGEXP,na.last = TRUE,decreasing = TRUE),], 20)
+```
+##Plot of 5 most harmfull Weather events to population health(INJURIES)
+```{r plot,echo=TRUE}
+ggplot(injuries[1:5, ],aes(EVTYPE,INJURIES))+geom_bar(fill="red",stat="identity")+ggtitle("5  Most harmfull Weather events(injuries)")+xlab("type of weather events")+ylab("INJURIES")+theme(plot.title=element_text(lineheight = .8,face = "bold"))
+```
+
+
+##Plot of 5 most harmfull weather events to population health(FATALITIES)
+```{r most harmfull weather,echo=TRUE}
+ggplot(fatalities[1:5, ], aes(EVTYPE,FATALITIES)) + geom_bar(fill="red",stat = "identity")+ggtitle("5 Most harmfull weather events(fatalities)")+xlab("Type of weather events")+ylab("FATALITIES")+theme(plot.title=element_text(lineheight = .8,face = "bold"))
+```
+
+
+
+
